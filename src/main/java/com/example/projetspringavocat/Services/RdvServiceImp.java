@@ -15,6 +15,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,16 +39,21 @@ public class RdvServiceImp implements RdvService {
         if (request == null || request.getCreneauId() == null || !StringUtils.hasText(request.getMotif())) {
             throw new IllegalArgumentException("Motif et creneauId sont requis");
         }
-
-
-
         Creneau creneau = creneauRepository.findByIdAndReserveFalse(request.getCreneauId())
                 .orElseThrow(() -> new ResourceNotFoundException("Creneau non disponible"));
 
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        boolean isPastDate = creneau.getDateJour().isBefore(today);
+        boolean isPastSameDay = creneau.getDateJour().isEqual(today) && creneau.getHeureDebut().isBefore(now);
+        if (isPastDate || isPastSameDay) {
+            throw new IllegalArgumentException("Impossible de réserver un rdv dans le passé");
+        }
+
         User client = userService.getCurrentUserEntity();
-        boolean hasActiveRdv = rendezVousRepository.existsByClientIdAndStatusIn(
+        boolean hasActiveRdv = rendezVousRepository.existsByClientIdAndStatus(
                 client.getId(),
-                Arrays.asList(StatusRdv.PENDING)
+                StatusRdv.PENDING
         );
 
         if (hasActiveRdv) {
@@ -121,5 +128,3 @@ public class RdvServiceImp implements RdvService {
         return rdvs.stream().map(RdvMapper::toResponse).collect(Collectors.toList());
     }
 }
-
-
