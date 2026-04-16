@@ -4,11 +4,13 @@ WORKDIR /app
 
 COPY . .
 
-RUN ./mvnw clean package -DskipTests
+# give permission BEFORE using mvnw
 RUN chmod +x mvnw
 
-# ✅ BUILD PROJECT
+# build the project
 RUN ./mvnw clean package -DskipTests
-EXPOSE 8081
 
+EXPOSE 8082
+
+# run the generated jar
 CMD ["java", "-jar", "target/projetSpringAvocat-0.0.1-SNAPSHOT.jar"]
